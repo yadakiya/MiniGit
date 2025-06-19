@@ -1,24 +1,24 @@
 
 // MiniGit: A Custom Version Control System
 
-#include <iostream>
-#include <fstream>
-#include <unordered_map>
-#include <unordered_set>
-#include <filesystem>
-#include <ctime>
-#include <sstream>
+#include <iostream>     // help for input output
+#include <fstream>      // file handling system
+#include <unordered_map>  //best for  hash based collection
+#include <unordered_set>  // same as unordered map
+#include <filesystem>     //to creat and check file 
+#include <ctime>         // current time
+#include <sstream>  // usefull in using string stream
 
-using namespace std;
+using namespace std;     // reduce  the use of std::
 namespace fs = filesystem;
 
 // Directory and file structure constants
-const string MINIGIT_DIR = ".minigit";
-const string OBJECTS_DIR = MINIGIT_DIR + "/objects";
-const string COMMITS_DIR = MINIGIT_DIR + "/commits";
-const string HEAD_FILE = MINIGIT_DIR + "/HEAD";
-const string BRANCHES_FILE = MINIGIT_DIR + "/branches";
-const string INDEX_FILE = MINIGIT_DIR + "/index";
+const string MINIGIT_DIR = ".minigit";  // root hidden for folder
+const string OBJECTS_DIR = MINIGIT_DIR + "/objects"; // for  git blobs
+const string COMMITS_DIR = MINIGIT_DIR + "/commits"; // stores commit metadata
+const string HEAD_FILE = MINIGIT_DIR + "/HEAD";   //track for current branch
+const string BRANCHES_FILE = MINIGIT_DIR + "/branches";  //stores branchs
+const string INDEX_FILE = MINIGIT_DIR + "/index";  //ho;der for the prpared commit
 
 // Custom hash function
 string generateHash(const string& content) {
@@ -26,11 +26,11 @@ string generateHash(const string& content) {
     return to_string(hasher(content));
 }
 
-string currentTime() {
+string currentTime() {  // help for getting  currenttime
     time_t now = time(nullptr);
     return string(ctime(&now));
 }
-
+// initalizing the minigit repository
 void init() {
     if (fs::exists(MINIGIT_DIR)) {
         cout << "MiniGit repository already exists.\n";
@@ -44,7 +44,7 @@ void init() {
     ofstream(INDEX_FILE);
     cout << "Initialized empty MiniGit repository.\n";
 }
-
+// ADD FILE TO STAGING AREA  hear the  file will staged for commit
 void add(const string& filename) {
     ifstream inFile(filename);
     if (!inFile) {
@@ -64,14 +64,14 @@ void add(const string& filename) {
 
     cout << "Staged: " << filename << endl;
 }
-
+//get current branch  that reads which branch head  is pointing
 string getHeadBranch() {
     ifstream headIn(HEAD_FILE);
     string branch;
     getline(headIn, branch);
     return branch;
 }
-
+//for latest commit of branch
 string getBranchCommit(const string& branch) {
     ifstream in(BRANCHES_FILE);
     string line;
@@ -82,7 +82,7 @@ string getBranchCommit(const string& branch) {
     }
     return "null";
 }
-
+ //for update commit of branch
 void updateBranch(const string& branch, const string& commitHash) {
     ifstream in(BRANCHES_FILE);
     stringstream out;
@@ -97,7 +97,7 @@ void updateBranch(const string& branch, const string& commitHash) {
     ofstream outFile(BRANCHES_FILE);
     outFile << out.str();
 }
-
+// code for reading staged files from indez and builds meta data
 void commit(const string& message) {
     ifstream indexIn(INDEX_FILE);
     stringstream files;
@@ -123,7 +123,7 @@ void commit(const string& message) {
     ofstream(INDEX_FILE);
     cout << "Committed. Hash: " << commitHash << endl;
 }
-
+//helpfull for  commit history this print  commithash ,message time and parent
 void log() {
     string current = getBranchCommit(getHeadBranch());
     while (current != "null") {
@@ -146,14 +146,14 @@ void log() {
         }
     }
 }
-
+// for creating new branch  but doesnt change the current branch
 void branch(const string& name) {
     string current = getBranchCommit(getHeadBranch());
     ofstream out(BRANCHES_FILE, ios::app);
     out << name << ":" << current << endl;
     cout << "Branch created: " << name << endl;
 }
-
+//merge  branch into current branch that result for  satged and committed 
 void merge(const string& target) {
     string base = getBranchCommit(getHeadBranch());
     string other = getBranchCommit(target);
@@ -185,7 +185,7 @@ void merge(const string& target) {
 
     commit("Merged branch " + target);
 }
-
+//cli  command parser
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         cout << "Commands: init, add <file>, commit -m <msg>, log, branch <name>, merge <branch>\n";
