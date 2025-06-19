@@ -9,12 +9,12 @@
 #include <sstream>
 #include <ctime>
 #include <string>
-#include <sys/stat.h>   // POSIX  mkdir
+#include <sys/stat.h>   // for making folders
 #include <sys/types.h>
 #include <cerrno>
 
 #ifdef _WIN32
-#  include <direct.h>   // _mkdir
+#  include <direct.h>   // Windows way to make folders
 #  define PLATFORM_MKDIR(path)  _mkdir(path)
 #  define PATH_SEP              "\\"
 #else
@@ -24,8 +24,7 @@
 #endif
 
 using namespace std;
-
-/*–––––––––––––––––––––––––––––––––  tiny helpers  –––––––––––––––––––––––––––*/
+//tiny helpers  
 static bool ensureDir(const string& path)
 {
     if (PLATFORM_MKDIR(path.c_str()) == 0 || errno == EEXIST)
@@ -33,9 +32,9 @@ static bool ensureDir(const string& path)
     perror(("mkdir " + path).c_str());
     return false;
 }
-
+// This function creates a number (hash) from text
 inline string hashStr(const string& s) { return to_string(hash<string>{}(s)); }
-
+// This function gives the current date and time as string
 inline string now()
 {
     time_t t = time(nullptr);
@@ -44,7 +43,7 @@ inline string now()
     return string(buf);
 }
 
-/*––––––––––––  repo paths –––––––––––––*/
+// Folder and file paths used in MiniGit
 const string ROOT          = ".minigit";
 const string OBJECTS_DIR   = ROOT + PATH_SEP + "objects";
 const string COMMITS_DIR   = ROOT + PATH_SEP + "commits";
@@ -55,15 +54,14 @@ const string BRANCHES_FILE = ROOT + PATH_SEP + "branches.txt";
 /* forward decls */
 void updateBranchHead(const string&, const string&);
 void commit(const string&);
-
-/*––––––––––––  getters –––––––––––––*/
+// This gets the name of the current branch from HEAD file
 string currentBranch()
 {
     ifstream f(HEAD_FILE);
     string b; getline(f,b);
     return b.empty() ? "main" : b;
 }
-
+// This finds the latest commit of a branch
 string branchHead(const string& branch)
 {
     ifstream f(BRANCHES_FILE);
@@ -76,7 +74,7 @@ string branchHead(const string& branch)
     }
     return "null";
 }
-
+// This finds the common commit (ancestor) between two branches
 string findLCA(string a, string b)
 {
     unordered_set<string> seen;
@@ -95,16 +93,17 @@ string findLCA(string a, string b)
     return "null";
 }
 
-/*––––––––––––  repo-level ops –––––––––––––*/
+
+// This function sets up the .minigit folder and necessary files
 void init()
 {
-    if (access(ROOT.c_str(), F_OK) == 0) return;          // already initialised
+    if (access(ROOT.c_str(), F_OK) == 0) return;         // if .minigit already exists, do nothing
     ensureDir(ROOT);
     ensureDir(OBJECTS_DIR);
     ensureDir(COMMITS_DIR);
 
-    ofstream(HEAD_FILE)      << "main\n";
-    ofstream(BRANCHES_FILE)  << "main:null\n";
+    ofstream(HEAD_FILE)      << "main\n";       // set current branch to "main"
+    ofstream(BRANCHES_FILE)  << "main:null\n";   // main branch starts with no commits
     ofstream(INDEX_FILE);                                    // empty index
 }
 
@@ -150,17 +149,17 @@ void commit(const string& msg)
 
     ofstream(INDEX_FILE);                       // clear staging
 }
-
+// This merges another branch into the current branch
 void merge(const string& target)
 {
     const string selfHead   = branchHead(currentBranch());
     const string targetHead = branchHead(target);
     if (targetHead == "null") return;
 
-    (void)findLCA(selfHead,targetHead);        // lca not used yet
+    (void)findLCA(selfHead,targetHead);        
 
     unordered_map<string,string> merged;
-
+// Collect files from both commits
     auto harvest = [&](const string& hash)
     {
         ifstream f(COMMITS_DIR + PATH_SEP + hash);
@@ -178,7 +177,7 @@ void merge(const string& target)
     };
     harvest(targetHead);
     harvest(selfHead);
-
+// Write merged files to index
     ofstream idx(INDEX_FILE);
     for (unordered_map<string,string>::const_iterator it = merged.begin();
          it != merged.end(); ++it)
